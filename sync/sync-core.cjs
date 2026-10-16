@@ -108,8 +108,17 @@ function specificationsHtml(mf) {
     return mf.value.split(/\r?\n/).map((l) => `<p>${l}</p>`).join("")
 }
 
-async function syncShopifyToFramer(framer, { domain, token, brandKeys = [], log = console.log }) {
-    const shopifyProducts = await fetchShopifyProducts({ domain, token })
+// Hash of everything the website shows for a product. Leaves out updatedAt, which Shopify
+// can bump for changes the site doesn't display (e.g. stock counts after an order).
+function productFingerprint(p) {
+    const json = JSON.stringify({ ...p, updatedAt: undefined })
+    let h = 5381
+    for (let i = 0; i < json.length; i++) h = ((h << 5) + h + json.charCodeAt(i)) | 0
+    return (h >>> 0).toString(36) + json.length.toString(36)
+}
+
+async function syncShopifyToFramer(framer, { domain, token, brandKeys = [], prefetched, log = console.log }) {
+    const shopifyProducts = prefetched ?? (await fetchShopifyProducts({ domain, token }))
     log(`Shopify: ${shopifyProducts.length} products`)
 
     const collections = await framer.getCollections()
@@ -173,7 +182,7 @@ async function syncShopifyToFramer(framer, { domain, token, brandKeys = [], log 
     const toWrite = []
     for (const u of upserts) {
         const src = shopifyProducts.find((p) => p.handle === u.slug)
-        const fp = src.updatedAt + "|" + (src.availableForSale ? 1 : 0)
+        const fp = productFingerprint(src)
         const cur = u.id && existingBySlug.get(u.slug)
         const prev = cur ? await cur.getPluginData("shopifyFingerprint") : null
         if (prev !== fp) toWrite.push({ u, cur, fp })
@@ -219,4 +228,4 @@ async function syncShopifyToFramer(framer, { domain, token, brandKeys = [], log 
     return { changed, count: shopifyProducts.length }
 }
 
-if (typeof module !== "undefined") module.exports = { syncShopifyToFramer, fetchShopifyProducts, priceLabel }
+if (typeof module !== "undefined") module.exports = { syncShopifyToFramer, fetchShopifyProducts, productFingerprint, priceLabel }

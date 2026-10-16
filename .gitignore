@@ -5,3 +5,4 @@ framer-code/
 deploy/
 *.zip
 sync/state/
+sync/.state/

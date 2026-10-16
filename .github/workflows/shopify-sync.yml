@@ -27,7 +27,14 @@ jobs:
           node-version: 22
       - run: npm ci --no-audit --no-fund
         working-directory: sync
-      - run: npm run sync
+      # Last sync's catalogue hash, so unchanged runs skip Framer entirely.
+      - uses: actions/cache/restore@v4
+        with:
+          path: sync/.state
+          key: sync-state-${{ github.run_id }}
+          restore-keys: sync-state-
+      - id: sync
+        run: npm run sync
         working-directory: sync
         env:
           FRAMER_API_KEY: ${{ secrets.FRAMER_API_KEY }}
@@ -35,6 +42,11 @@ jobs:
           SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
           SHOPIFY_STOREFRONT_TOKEN: ${{ secrets.SHOPIFY_STOREFRONT_TOKEN }}
           BRAND_KEYS: ${{ secrets.BRAND_KEYS }}
+      - if: steps.sync.outputs.state_changed == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: sync/.state
+          key: sync-state-${{ github.run_id }}
       # GitHub pauses scheduled workflows in public repos after 60 days without commits.
       # An empty commit every ~45 days keeps the schedule alive.
       - name: Keep schedule alive
