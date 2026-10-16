@@ -51,8 +51,8 @@ try {
     const { changed } = await syncShopifyToFramer(framer, { domain, token, brandKeys, prefetched: products })
     if (changed && process.env.SKIP_PUBLISH !== "1") {
         const { deployment } = await framer.publish()
-        const hostnames = await framer.deploy(deployment.id)
-        console.log("Published:", hostnames.map((h) => h.hostname).join(", "))
+        await framer.deploy(deployment.id)
+        console.log("Published to production.") // no hostname: run logs are public
     }
 } finally {
     await framer.disconnect()
