@@ -1,0 +1,7 @@
+.env
+node_modules/
+framer-code/
+*.env
+deploy/
+*.zip
+sync/state/

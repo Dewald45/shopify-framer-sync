@@ -1,0 +1,48 @@
+name: Shopify → Framer sync
+
+on:
+  # Every 5 minutes (GitHub's minimum; scheduled runs can start a few minutes late under load).
+  schedule:
+    - cron: "*/5 * * * *"
+  # "Run workflow" button in GitHub.
+  workflow_dispatch:
+
+concurrency:
+  group: shopify-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: write # only used by the keep-alive step below
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+        working-directory: sync
+      - run: npm run sync
+        working-directory: sync
+        env:
+          FRAMER_API_KEY: ${{ secrets.FRAMER_API_KEY }}
+          FRAMER_PROJECT_URL: ${{ secrets.FRAMER_PROJECT_URL }}
+          SHOPIFY_STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          SHOPIFY_STOREFRONT_TOKEN: ${{ secrets.SHOPIFY_STOREFRONT_TOKEN }}
+          BRAND_KEYS: ${{ secrets.BRAND_KEYS }}
+      # GitHub pauses scheduled workflows in public repos after 60 days without commits.
+      # An empty commit every ~45 days keeps the schedule alive.
+      - name: Keep schedule alive
+        run: |
+          last=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - last )) -gt $(( 45 * 86400 )) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "Keep scheduled sync active"
+            git push
+          fi

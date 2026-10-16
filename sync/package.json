@@ -1,0 +1,8 @@
+{
+  "name": "shopify-framer-sync",
+  "private": true,
+  "type": "module",
+  "scripts": { "sync": "node run-sync.mjs" },
+  "dependencies": { "framer-api": "5.1.0" },
+  "engines": { "node": ">=22" }
+}
