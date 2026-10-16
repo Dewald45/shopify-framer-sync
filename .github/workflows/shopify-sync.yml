@@ -1,9 +1,10 @@
 name: Shopify → Framer sync
 
 on:
-  # Every 5 minutes (GitHub's minimum; scheduled runs can start a few minutes late under load).
+  # Every 5 minutes (GitHub's minimum). Offset from :00/:05 because GitHub drops many runs
+  # scheduled exactly on those busy minutes; runs can still start a few minutes late under load.
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "3-59/5 * * * *"
   # "Run workflow" button in GitHub.
   workflow_dispatch:
 
